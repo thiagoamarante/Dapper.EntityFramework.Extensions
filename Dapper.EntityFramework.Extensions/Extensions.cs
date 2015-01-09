@@ -12,7 +12,7 @@ using System.Collections.Concurrent;
 using System.Reflection.Emit;
 using System.Threading;
 
-namespace Dapper.EntityFramework
+namespace Dapper
 {
     public static class Extensions
     {

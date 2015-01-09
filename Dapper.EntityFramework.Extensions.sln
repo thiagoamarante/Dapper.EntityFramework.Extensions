@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		Commands.txt = Commands.txt
 		Dapper.EntityFramework.Extensions.nuspec = Dapper.EntityFramework.Extensions.nuspec
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8F8C8CB9-4281-469F-AE49-B197AC64CD23}"
