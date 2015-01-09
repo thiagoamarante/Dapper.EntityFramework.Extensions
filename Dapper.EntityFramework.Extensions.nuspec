@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata schemaVersion="2">
+    <id>Dapper.EntityFramework.Extensions</id>
+    <version>1.0.0.0</version>
+    <title>Dapper entity framework extensions</title>
+    <authors>Thiago Amarante</authors>
+    <owners>Thiago Amarante</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/thiagoamarante/Dapper.EntityFramework.Extensions</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Extension for entity framework</description>
+    <summary>Adds support for methods dapper in DbSet and Crud</summary>
+    <tags>orm sql micro-orm entityframework entity framework extensions</tags>
+    <dependencies>
+      <dependency id="EntityFramework" version="6.1.2" />
+      <dependency id="Dapper" version="1.38" />
+    </dependencies>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.Core"/>
+      <frameworkAssembly assemblyName="System"/>
+      <frameworkAssembly assemblyName="System.Data"/>
+      <frameworkAssembly assemblyName="Microsoft.CSharp" targetFramework=".NETFramework4.0-Client, .NETFramework4.0" />
+    </frameworkAssemblies>
+    <releaseNotes>
+    </releaseNotes>
+  </metadata>
+  <files>
+    <file src="Dapper.EntityFramework.Extensions\bin\Release\Dapper.EntityFramework.Extensions.dll" target="lib\net45" />
+    <file src="Dapper.EntityFramework.Extensions\bin\Release\Dapper.EntityFramework.Extensions.pdb" target="lib\net45" />
+  </files>
+</package>
