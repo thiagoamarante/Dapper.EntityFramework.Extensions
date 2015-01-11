@@ -7,47 +7,94 @@ using Dapper;
 public class Example
 {
 
-    public void Insert()
-    {
-        using (Repository repository = new Repository(true))
+    public static void Insert()
         {
-            //Insert and return id
-            var id = repository.Customers.Insert(new { Name = "test" });            
-        }
-    }
+            using (TestEntities context = new TestEntities())
+            {
+                var obj = new 
+                { 
+                    Name = "User Insert", 
+                    DateCreate = DateTime.Now, 
+                    Gender = Gender.Female 
+                };
 
-    public void Update()
-    {
-        using (Repository repository = new Repository(true))
+                watch.Restart();
+                context.Users.Insert(obj);
+                Console.WriteLine("Insert - {0}ms", watch.ElapsedMilliseconds);
+            }
+            Console.WriteLine();
+        }
+
+        public static void Update()
         {
-            //Id property is the condition update
-            repository.Customers.Update(new { Id = 1, Name = "test" });
-            
-            //Updates all with Status = true
-            repository.Customers.Update(new { Status = false }, new { Status = true });
-        }
-    }
+            using (TestEntities context = new TestEntities())
+            {
+                var obj = new
+                {
+                    Gender = Gender.Male
+                };
 
-    public void Delete()
-    {
-        using (Repository repository = new Repository(true))
+                watch.Restart();
+                context.Users.Update(obj);
+                Console.WriteLine("Update All - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();
+                context.Users.Update(new
+                {
+                    Gender = Gender.Female
+                }, o=> o.Id == 1);
+                Console.WriteLine("Update With Query - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();
+                context.Users.Update(new
+                {
+                    Gender = Gender.Female
+                }, o => o.Id == 1 && (o.Name == "teste" || o.DateCreate > DateTime.Now));
+                Console.WriteLine("Update With Complex Query - {0}ms", watch.ElapsedMilliseconds);
+            }
+            Console.WriteLine();
+        }
+
+        public static void Delete()
         {
-            //Delete all rows
-            repository.Customers.Delete();
+            using (TestEntities context = new TestEntities())
+            {
+                watch.Restart();
+                context.BlogPosts.Delete();
+                Console.WriteLine("Delete All - {0}ms", watch.ElapsedMilliseconds);
 
-            //Delete all with Status = true
-            repository.Customers.Delete(new { Status = true });
+                Console.WriteLine();
+                watch.Restart();
+                context.Users.Delete(o => o.Id == 6);
+                Console.WriteLine("Delete With Query - {0}ms", watch.ElapsedMilliseconds);
+            }
+            Console.WriteLine();
         }
-    }
 
-    public void Query()
-    {
-        using (Repository repository = new Repository(true))
+        public static void Select()
         {
-            //Run query with Dapper
-            var result = (from o in repository.Customers
-                          where o.Name == "test"
-                          select o.Name).ToDapper();
+            using (TestEntities context = new TestEntities())
+            {
+                watch.Restart();
+                var result = context.Users.Query(o => o.Id > 1, 2, o => o.Id);
+                Console.WriteLine("Select - {0}ms", watch.ElapsedMilliseconds);
+            }
+            Console.WriteLine();
         }
-    }
+
+        public static void ToDapper()
+        {
+            using(TestEntities context = new TestEntities())
+            {
+                object result = null;
+                watch.Restart();
+                result = (from o in context.Users
+                          where o.Id > 1
+                          orderby o.Id
+                          select o).ToDapper().ToList();
+                Console.WriteLine("ToDapper - {0}ms", watch.ElapsedMilliseconds);
+            }
+        }
 }
