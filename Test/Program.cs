@@ -17,17 +17,17 @@ namespace Test
         static Stopwatch watch = new Stopwatch();
         static void Main(string[] args)
         {
+            watch.Restart();
             using (TestEntities context = new TestEntities())
             {
-                context.Database.Initialize(true); 
+                //context.Optimization();
+                context.Initialize();               
             }
+            Console.WriteLine("{0}ms - Initialize Context", watch.ElapsedMilliseconds);
 
-            TestsDapper();
-            TestsDapper();
+            TestsDapper();            
             Tests();
-            Tests();
-            TestsEF();
-            TestsEF();
+            TestsEF();            
             
             Console.ReadLine();
         }

@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using System.Reflection.Emit;
 using System.Threading;
 using System.Diagnostics;
+using System.Collections;
 
 namespace Dapper
 {
@@ -170,6 +171,33 @@ namespace Dapper
             LogElapsed(watch, "Execution");
 #endif
             return result;
+        }
+
+        public static void Initialize(this DbContext context)
+        {
+#if DEBUG
+            var watch = LogStart("Initialize");
+#endif
+            context.Database.Initialize(true);
+#if DEBUG
+            LogElapsed(watch, "Database.Initialize");
+#endif
+            foreach (var property in context.GetType().GetProperties().Where(o => o.PropertyType.Name == "DbSet`1"))
+            {               
+                var dbSet = property.GetValue(context);
+                dbSet.ToString();
+            }
+#if DEBUG
+            LogElapsed(watch, "Cache DbSet");
+#endif
+        }
+
+        public static void Optimization(this DbContext context)
+        {
+            context.Configuration.AutoDetectChangesEnabled = false;
+            context.Configuration.LazyLoadingEnabled = false;
+            context.Configuration.ProxyCreationEnabled = false;
+            context.Configuration.ValidateOnSaveEnabled = false;            
         }
 
         private static DbContext GetDbContext(this IQueryable source)
