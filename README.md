@@ -7,7 +7,7 @@ using Dapper;
 public class Example
 {
 
-    public static void Insert()
+        public static void Insert()
         {
             using (TestEntities context = new TestEntities())
             {
@@ -95,6 +95,54 @@ public class Example
                           orderby o.Id
                           select o).ToDapper().ToList();
                 Console.WriteLine("ToDapper - {0}ms", watch.ElapsedMilliseconds);
+            }
+        }
+
+        public static void Transaction()
+        {
+            using(TestEntities context = new TestEntities())
+            {
+                using (var transaction = context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        repository.BlogPosts.Delete();
+                        repository.Blogs.Delete();
+                        transaction.Commit();                        
+                    }
+                    catch(Exception ex)
+                    {
+                        transaction.Rollback();
+                    }
+                }
+            }
+        }
+
+        public static void EntityFrameworkAndDapperTogether()
+        {
+            using(TestEntities context = new TestEntities())
+            {
+                using (var transaction = context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        repository.BlogPosts.Add(new BlogPost() 
+                        {
+                            BlogId = 1,
+                            Body = "text body",
+                            DatePublication = DateTime.Now
+                        });
+                        repository.SaveChanges();
+
+                        repository.BlogSettings.Update(new { AutoSave = true}, o=> o.BlogId = 1);
+
+                        transaction.Commit();                        
+                    }
+                    catch(Exception ex)
+                    {
+                        transaction.Rollback();
+                    }
+                }
             }
         }
 }

@@ -13,13 +13,14 @@ using System.Reflection.Emit;
 using System.Threading;
 using System.Diagnostics;
 using System.Collections;
+using System.Data.Entity.Core.Metadata.Edm;
 
 namespace Dapper
 {
     public static class Extensions
     {       
-        private static bool _Init = false;       
-        private static Dictionary<Type, DbContext> _CacheContext = new Dictionary<Type, DbContext>();
+        private static bool _Init = false; 
+        private static Dictionary<Type, string> _CacheTable = new Dictionary<Type, string>();
         
         public static Int64 Insert<TEntity>(this DbSet<TEntity> source, object entity)
             where TEntity : class
@@ -31,9 +32,9 @@ namespace Dapper
 #if DEBUG
             LogElapsed(watch, "GetDbContext");
 #endif
-            string table = typeof(TEntity).Name;
+            string table = GetTableName<TEntity>(context);
             string[] properties = entity.GetType().GetProperties().Where(o => o.Name != "Id").Select(o => o.Name).ToArray();
-            string sql = string.Concat("INSERT INTO [", table, "] (",
+            string sql = string.Concat("INSERT INTO ", table, " (",
                 string.Join(", ", properties.Select(o => string.Concat("[", o, "]"))),
                 ") VALUES(",
                 string.Join(", ", properties.Select(o => "@" + o)), "); SELECT CAST(SCOPE_IDENTITY() as bigint)");
@@ -41,7 +42,7 @@ namespace Dapper
 #if DEBUG
             LogElapsed(watch, "Parse");
 #endif
-            Int64 result = context.Database.Connection.Query<Int64>(sql, entity).FirstOrDefault();
+            Int64 result = context.Database.Connection.Query<Int64>(sql, entity, transaction: context.Database.CurrentTransaction != null ? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout).FirstOrDefault();
 #if DEBUG
             LogElapsed(watch, "Execution");
 #endif
@@ -61,10 +62,10 @@ namespace Dapper
             LogElapsed(watch, "GetDbContext");
 #endif
             DynamicParameters parameter = new DynamicParameters();
-            parameter.AddDynamicParams(entity);            
-            string table = typeof(TEntity).Name;
+            parameter.AddDynamicParams(entity);
+            string table = GetTableName<TEntity>(context);
             Dictionary<string, Type> properties = entity.GetType().GetProperties().ToDictionary(o => o.Name, o => o.PropertyType);
-            string sql = string.Concat("UPDATE [", table, "] SET ",
+            string sql = string.Concat("UPDATE ", table, " SET ",
                 string.Join(", ", properties.Where(o => o.Key != "Id").Select(o => string.Concat("[", o.Key, "]") + " = @" + o.Key)));
 #if DEBUG
             LogElapsed(watch, "Parse update");
@@ -78,7 +79,7 @@ namespace Dapper
             }
             else if (properties.Any(o => o.Key == "Id"))
                 sql += " WHERE [Id] = @Id";
-            var result =  context.Database.Connection.Execute(sql, parameter);
+            var result =  context.Database.Connection.Execute(sql, parameter, transaction: context.Database.CurrentTransaction != null? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout);
 #if DEBUG
             LogElapsed(watch, "Execution");
 #endif
@@ -96,8 +97,8 @@ namespace Dapper
             LogElapsed(watch, "GetDbContext");
 #endif
             DynamicParameters parameter = new DynamicParameters();
-            string table = typeof(TEntity).Name;          
-            string sql = string.Concat("DELETE FROM [", table, "]");
+            string table = GetTableName<TEntity>(context);         
+            string sql = string.Concat("DELETE FROM ", table, "");
 #if DEBUG
             LogElapsed(watch, "Parse");
 #endif
@@ -108,7 +109,7 @@ namespace Dapper
                 LogElapsed(watch, "Parse where");
 #endif
             }
-            var result = context.Database.Connection.Execute(sql, parameter);
+            var result = context.Database.Connection.Execute(sql, parameter, transaction: context.Database.CurrentTransaction != null ? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout);
 #if DEBUG
             LogElapsed(watch, "Execution");
 #endif
@@ -231,6 +232,30 @@ namespace Dapper
             foreach(var param in objectQuery.Parameters)
                 parameters.Add("@" + param.Name, param.Value);
             return query.Substring(query.IndexOf("WHERE")).Replace("[Extent1].", "");
+        }
+
+        private static string GetTableName<TEntity>(DbContext context)
+             where TEntity : class
+        {
+            Type type = typeof(TEntity);
+            if (!_CacheTable.ContainsKey(type))
+            {
+                var objectContext = (context as IObjectContextAdapter).ObjectContext;
+                var metadata = ((IObjectContextAdapter)context).ObjectContext.MetadataWorkspace;
+                EntitySet entitySet = metadata.GetItemCollection(DataSpace.SSpace)
+                                 .GetItems<EntityContainer>()
+                                 .Single()
+                                 .BaseEntitySets
+                                 .OfType<EntitySet>()
+                                 .FirstOrDefault(s => (!s.MetadataProperties.Contains("Type")
+                                             || s.MetadataProperties["Type"].ToString() == "Tables") && s.Name == type.Name);
+
+                if (entitySet == null)
+                    throw new Exception(string.Format("entitySet ({0}) not found", type.Name));
+                
+                _CacheTable.Add(type, string.Format("[{0}].[{1}]", entitySet.Schema, entitySet.Name));
+            }
+            return _CacheTable[type]; 
         }
 
 #if DEBUG
