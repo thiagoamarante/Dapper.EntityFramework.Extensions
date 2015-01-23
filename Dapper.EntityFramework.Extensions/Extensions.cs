@@ -21,7 +21,8 @@ namespace Dapper
     {       
         private static bool _Init = false; 
         private static Dictionary<Type, string> _CacheTable = new Dictionary<Type, string>();
-        
+
+        #region Methods
         public static Int64 Insert<TEntity>(this DbSet<TEntity> source, object entity)
             where TEntity : class
         {
@@ -116,7 +117,7 @@ namespace Dapper
             return result;
         }
 
-        public static IEnumerable<TEntity> Query<TEntity, TKey>(this DbSet<TEntity> source, Expression<Func<TEntity, bool>> where = null, int? top = null, Expression<Func<TEntity, TKey>> orderBy = null, Expression<Func<TEntity, TKey>> orderByDescending = null)
+        public static IEnumerable<TEntity> Query<TEntity>(this DbSet<TEntity> source, Expression<Func<TEntity, bool>> where = null, int? top = null, Func<OrderBy<TEntity>, OrderBy<TEntity>> orderBy = null)
             where TEntity : class
         {
 #if DEBUG
@@ -130,14 +131,19 @@ namespace Dapper
             var objectQuery  = (ObjectQuery<TEntity>)((IObjectContextAdapter)context).ObjectContext.CreateObjectSet<TEntity>();
             if (where != null)
                 objectQuery = (ObjectQuery<TEntity>)objectQuery.Where(where);
-
+           
             if (orderBy != null)
-                objectQuery = (ObjectQuery<TEntity>)objectQuery.OrderBy(orderBy);
-
-            if (orderByDescending != null)
-                objectQuery = (ObjectQuery<TEntity>)objectQuery.OrderByDescending(orderByDescending);
+            {
+                OrderBy<TEntity> order = new OrderBy<TEntity>(objectQuery);
+                orderBy(order);
+                objectQuery = order.Query;
+            }
 
             string query = objectQuery.ToTraceString();
+
+            DynamicParameters parameters = new DynamicParameters();
+            foreach (var param in objectQuery.Parameters)
+                parameters.Add("@" + param.Name, param.Value);
 
             if (top != null) 
             {
@@ -146,7 +152,52 @@ namespace Dapper
 #if DEBUG
             LogElapsed(watch, "Parse");
 #endif
-            var result = context.Database.Connection.Query<TEntity>(query);
+            var result = context.Database.Connection.Query<TEntity>(query, parameters, transaction: context.Database.CurrentTransaction != null ? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout);
+#if DEBUG
+            LogElapsed(watch, "Execution");
+#endif
+            return result;
+        }
+
+        public static IEnumerable<TResult> Query<TEntity, TResult>(this DbSet<TEntity> source, Expression<Func<TEntity, TResult>> selector, Expression<Func<TEntity, bool>> where = null, int? top = null, Func<OrderBy<TResult>, OrderBy<TResult>> orderBy = null)
+            where TEntity : class
+            where TResult : class
+        {
+#if DEBUG
+            var watch = LogStart("QUERY WITH SELECTOR");
+#endif
+            var context = source.GetDbContext();
+#if DEBUG
+            LogElapsed(watch, "GetDbContext");
+#endif
+
+            var objectQuery = (ObjectQuery<TEntity>)((IObjectContextAdapter)context).ObjectContext.CreateObjectSet<TEntity>();
+            if (where != null)
+                objectQuery = (ObjectQuery<TEntity>)objectQuery.Where(where);
+
+            var objectQuerySelector = (ObjectQuery<TResult>)objectQuery.Select(selector);
+
+            if (orderBy != null)
+            {
+                OrderBy<TResult> order = new OrderBy<TResult>(objectQuerySelector);
+                orderBy(order);
+                objectQuerySelector = order.Query;
+            }
+
+            string query = objectQuerySelector.ToTraceString();
+
+            DynamicParameters parameters = new DynamicParameters();
+            foreach (var param in objectQuery.Parameters)
+                parameters.Add("@" + param.Name, param.Value);
+
+            if (top != null)
+            {
+                query = "SELECT TOP " + top.Value + query.Substring(query.IndexOf("SELECT") + 6);
+            }
+#if DEBUG
+            LogElapsed(watch, "Parse");
+#endif
+            var result = context.Database.Connection.Query<TResult>(query, parameters, transaction: context.Database.CurrentTransaction != null ? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout);
 #if DEBUG
             LogElapsed(watch, "Execution");
 #endif
@@ -200,6 +251,9 @@ namespace Dapper
             context.Configuration.ProxyCreationEnabled = false;
             context.Configuration.ValidateOnSaveEnabled = false;            
         }
+        #endregion
+
+        #region Methods Private
 
         private static DbContext GetDbContext(this IQueryable source)
         {           
@@ -255,8 +309,9 @@ namespace Dapper
                 
                 _CacheTable.Add(type, string.Format("[{0}].[{1}]", entitySet.Schema, entitySet.Name));
             }
-            return _CacheTable[type]; 
+            return _CacheTable[type];
         }
+        #endregion        
 
 #if DEBUG
         private static Stopwatch LogStart(string message)
@@ -274,4 +329,40 @@ namespace Dapper
         }
 #endif
     }
+
+    #region Class
+    public class OrderBy<TEntity>
+        where TEntity : class
+    {
+        private int _Orders = 0;
+        public OrderBy(ObjectQuery<TEntity> query)
+        {
+            this.Query = query;
+        }
+
+        public ObjectQuery<TEntity> Query { get; private set; }
+
+        public OrderBy<TEntity> Asc<TKey>(Expression<Func<TEntity, TKey>> keySelector)
+        {
+            if (_Orders > 0)
+                this.Query = (ObjectQuery<TEntity>)this.Query.ThenBy(keySelector);   
+            else
+                this.Query = (ObjectQuery<TEntity>)this.Query.OrderBy(keySelector);
+            _Orders++;
+            return this;
+        }
+
+        public OrderBy<TEntity> Desc<TKey>(Expression<Func<TEntity, TKey>> keySelector)
+        {
+            if (_Orders > 0)
+                this.Query = (ObjectQuery<TEntity>)this.Query.ThenByDescending(keySelector);  
+            else
+                this.Query = (ObjectQuery<TEntity>)this.Query.OrderByDescending(keySelector);
+            _Orders++;
+            return this;
+        }  
+    }
+
+    
+    #endregion
 }

@@ -40,7 +40,7 @@ namespace Test
             Insert();
             Update();
             Delete();
-            Select();
+            Select();             
             ToDapper();
         }
 
@@ -137,9 +137,15 @@ namespace Test
         {
             using (TestEntities context = new TestEntities())
             {
-                watch.Restart();
-                var result = context.Users.Query(o => o.Id > 1, 2, o => o.Id);
+                watch.Restart();                
+                var result = context.Users.Query(o => o.Id > 1, 2, orderBy => orderBy.Asc(o => o.Id ).Desc(o => o.Name));
+                int qtd = result.Count();
                 Console.WriteLine("Select - {0}ms", watch.ElapsedMilliseconds);
+
+                watch.Restart();
+                var result2 = context.Users.Query(o=> new { o.Id, o.Name }, o => o.Id > 1, 2, orderBy => orderBy.Asc(o => o.Id).Desc(o => o.Name));
+                qtd = result2.Count();
+                Console.WriteLine("Select With Selector - {0}ms", watch.ElapsedMilliseconds);
             }
             Console.WriteLine();
         }

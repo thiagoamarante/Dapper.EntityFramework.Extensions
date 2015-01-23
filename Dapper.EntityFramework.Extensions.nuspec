@@ -2,16 +2,21 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata schemaVersion="2">
     <id>Dapper.EntityFramework.Extensions</id>
-    <version>1.0.0.0</version>
+    <version>1.7.0.0</version>
     <title>Dapper entity framework extensions</title>
     <authors>Thiago Amarante</authors>
     <owners>Thiago Amarante</owners>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
     <projectUrl>https://github.com/thiagoamarante/Dapper.EntityFramework.Extensions</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Extension for entity framework</description>
+    <description>
+      Extension for EntityFramework
+      Library brings together the best of the EntityFramework with Dapper.
+      Basic CRUD operations (Query, Insert, Update, Delete) for your POCOs.
+    </description>
     <summary>Adds support for methods dapper in DbSet and Crud</summary>
     <tags>orm sql micro-orm entityframework entity framework extensions</tags>
+    <iconUrl>http://go.microsoft.com/fwlink/?LinkID=386613</iconUrl>
     <dependencies>
       <dependency id="EntityFramework" version="6.1.2" />
       <dependency id="Dapper" version="1.38" />
@@ -23,6 +28,17 @@
       <frameworkAssembly assemblyName="Microsoft.CSharp" targetFramework=".NETFramework4.0-Client, .NETFramework4.0" />
     </frameworkAssemblies>
     <releaseNotes>
+      (*) Release 1.7.0.0
+      - New method Query and Query with selector
+      - Query support top
+      - Query support where
+      - Query support orderby
+      - Query support selector
+      
+      (*) Release 1.6.0.1
+      - Support schemas
+      - Support EntityFramework in Transaction
+      - Support CommandTimeout DbContext
     </releaseNotes>
   </metadata>
   <files>
