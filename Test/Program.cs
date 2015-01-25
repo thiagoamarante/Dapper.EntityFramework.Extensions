@@ -71,16 +71,36 @@ namespace Test
         {
             using (TestEntities context = new TestEntities())
             {
-                var obj = new 
-                { 
-                    Name = "User Insert", 
-                    DateCreate = DateTime.Now, 
-                    Gender = Gender.Female 
+                var obj = new
+                {                   
+                    Name = "User Insert",
+                    DateCreate = DateTime.Now,
+                    Gender = Gender.Female
                 };
-
                 watch.Restart();
                 context.Users.Insert(obj);
-                Console.WriteLine("Insert - {0}ms", watch.ElapsedMilliseconds);
+                Console.WriteLine("Insert With Anonymous - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();
+                var obj2 = new User()
+                {
+                    Name = "User Insert",
+                    DateCreate = DateTime.Now,
+                    Gender = Gender.Male
+                };                
+                context.Users.Insert(obj2);
+                Console.WriteLine("Insert With Class - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();                
+                context.Users.Insert(obj, returnIdentity: false);
+                Console.WriteLine("Insert Without Return Identity - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();
+                context.Users.Insert(obj, propertyKey: "User_Id");
+                Console.WriteLine("Insert With Change PropertyKey - {0}ms", watch.ElapsedMilliseconds);
             }
             Console.WriteLine();
         }

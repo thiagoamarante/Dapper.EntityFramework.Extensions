@@ -1,7 +1,13 @@
-# Dapper.EntityFramework.Extensions (1.7.0.0)
+# Dapper.EntityFramework.Extensions (1.7.0.1)
 Extension for EntityFramework
       Library brings together the best of the EntityFramework with Dapper.
       Basic CRUD operations (Query, Insert, Update, Delete) for your POCOs.
+      
+      (*) Release 1.7.0.1       
+      - Insert optional return identity
+      - Insert return identity object type
+      - Insert and Update can change PropertyKey
+      - Insert and Update automatic removes property of different kind of primitive and enum
 
       (*) Release 1.7.0.0
       - New method Query and Query with selector
@@ -24,16 +30,36 @@ public class Example
         {
             using (TestEntities context = new TestEntities())
             {
-                var obj = new 
-                { 
-                    Name = "User Insert", 
-                    DateCreate = DateTime.Now, 
-                    Gender = Gender.Female 
+                var obj = new
+                {                   
+                    Name = "User Insert",
+                    DateCreate = DateTime.Now,
+                    Gender = Gender.Female
                 };
-
                 watch.Restart();
                 context.Users.Insert(obj);
-                Console.WriteLine("Insert - {0}ms", watch.ElapsedMilliseconds);
+                Console.WriteLine("Insert With Anonymous - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();
+                var obj2 = new User()
+                {
+                    Name = "User Insert",
+                    DateCreate = DateTime.Now,
+                    Gender = Gender.Male
+                };                
+                context.Users.Insert(obj2);
+                Console.WriteLine("Insert With Class - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();                
+                context.Users.Insert(obj, returnIdentity: false);
+                Console.WriteLine("Insert Without Return Identity - {0}ms", watch.ElapsedMilliseconds);
+
+                Console.WriteLine();
+                watch.Restart();
+                context.Users.Insert(obj, propertyKey: "User_Id");
+                Console.WriteLine("Insert With Change PropertyKey - {0}ms", watch.ElapsedMilliseconds);           
             }
             Console.WriteLine();
         }

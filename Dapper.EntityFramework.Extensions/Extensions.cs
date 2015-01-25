@@ -23,7 +23,7 @@ namespace Dapper
         private static Dictionary<Type, string> _CacheTable = new Dictionary<Type, string>();
 
         #region Methods
-        public static Int64 Insert<TEntity>(this DbSet<TEntity> source, object entity)
+        public static object Insert<TEntity>(this DbSet<TEntity> source, object entity, bool returnIdentity = true, string propertyKey = "Id")
             where TEntity : class
         {
 #if DEBUG
@@ -33,26 +33,34 @@ namespace Dapper
 #if DEBUG
             LogElapsed(watch, "GetDbContext");
 #endif
+            
             string table = GetTableName<TEntity>(context);
-            string[] properties = entity.GetType().GetProperties().Where(o => o.Name != "Id").Select(o => o.Name).ToArray();
+            string[] properties = entity.GetType().GetProperties().Where(o => (o.PropertyType.IsEnum || Type.GetTypeCode(o.PropertyType) != TypeCode.Object) && o.Name != propertyKey).Select(o => o.Name).ToArray();
             string sql = string.Concat("INSERT INTO ", table, " (",
                 string.Join(", ", properties.Select(o => string.Concat("[", o, "]"))),
-                ") VALUES(",
-                string.Join(", ", properties.Select(o => "@" + o)), "); SELECT CAST(SCOPE_IDENTITY() as bigint)");
-            var propertyId = entity.GetType().GetProperty("Id");
+                ") VALUES(",                
+                string.Join(", ", properties.Select(o => "@" + o)), ");");
+
+            if (returnIdentity)
+                sql += " SELECT SCOPE_IDENTITY()";
+            
 #if DEBUG
             LogElapsed(watch, "Parse");
 #endif
-            Int64 result = context.Database.Connection.Query<Int64>(sql, entity, transaction: context.Database.CurrentTransaction != null ? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout).FirstOrDefault();
+            var result = context.Database.Connection.ExecuteScalar<object>(sql, entity, transaction: context.Database.CurrentTransaction != null ? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout);
 #if DEBUG
             LogElapsed(watch, "Execution");
 #endif
-            if (propertyId != null)
-                propertyId.SetValue(entity, result);
+            if (returnIdentity && result != null)
+            {
+                var propertyId = entity.GetType().GetProperty(propertyKey);
+                if (propertyId != null && propertyId.CanWrite)
+                    propertyId.SetValue(entity, Convert.ChangeType(result, propertyId.PropertyType));
+            }
             return result;
         }
 
-        public static int Update<TEntity>(this DbSet<TEntity> source, object entity, Expression<Func<TEntity, bool>> where = null)
+        public static int Update<TEntity>(this DbSet<TEntity> source, object entity, Expression<Func<TEntity, bool>> where = null, string propertyKey = "Id")
             where TEntity : class
         {
 #if DEBUG
@@ -67,7 +75,7 @@ namespace Dapper
             string table = GetTableName<TEntity>(context);
             Dictionary<string, Type> properties = entity.GetType().GetProperties().ToDictionary(o => o.Name, o => o.PropertyType);
             string sql = string.Concat("UPDATE ", table, " SET ",
-                string.Join(", ", properties.Where(o => o.Key != "Id").Select(o => string.Concat("[", o.Key, "]") + " = @" + o.Key)));
+                string.Join(", ", properties.Where(o => (o.Value.IsEnum || Type.GetTypeCode(o.Value) != TypeCode.Object) && o.Key != propertyKey).Select(o => string.Concat("[", o.Key, "]") + " = @" + o.Key)));
 #if DEBUG
             LogElapsed(watch, "Parse update");
 #endif
@@ -78,8 +86,8 @@ namespace Dapper
                 LogElapsed(watch, "Parse where");
 #endif
             }
-            else if (properties.Any(o => o.Key == "Id"))
-                sql += " WHERE [Id] = @Id";
+            else if (properties.Any(o => o.Key == propertyKey))
+                sql += string.Concat(" WHERE [", propertyKey, "] = @Id");
             var result =  context.Database.Connection.Execute(sql, parameter, transaction: context.Database.CurrentTransaction != null? context.Database.CurrentTransaction.UnderlyingTransaction : null, commandTimeout: context.Database.CommandTimeout);
 #if DEBUG
             LogElapsed(watch, "Execution");
