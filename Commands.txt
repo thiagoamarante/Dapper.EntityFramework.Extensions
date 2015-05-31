@@ -1,10 +1,10 @@
 (*) GENERATE PACKAGE
 
 NuGet.exe pack .\Dapper.EntityFramework.Extensions.nuspec
-NuGet.exe pack .\Dapper.EntityFramework.Extensions.nuspec -Version 1.8.0.0
+NuGet.exe pack .\Dapper.EntityFramework.Extensions.nuspec -Version 1.8.0.1
 NuGet.exe pack Dapper.EntityFramework.Extensions\Dapper.EntityFramework.Extensions.csproj -Build -Symbols -Properties Configuration=Release
 
 (*) PUSH PACKAGE
 NuGet.exe setapikey [APIKEY]
-NuGet.exe push Dapper.EntityFramework.Extensions.1.8.0.0.nupkg
+NuGet.exe push Dapper.EntityFramework.Extensions.1.8.0.1.nupkg
 

@@ -1,9 +1,9 @@
-# Dapper.EntityFramework.Extensions (1.8.0.0)
+# Dapper.EntityFramework.Extensions (1.8.0.1)
 Extension for EntityFramework
       Library brings together the best of the EntityFramework with Dapper.
       Basic CRUD operations (Query, Insert, Update, Delete) for your POCOs.
       
-      (*) Release 1.8.0.0
+      (*) Release 1.8.0.1
       - Support  DbGeography/DbGeometry
 
       (*) Release 1.7.0.1       

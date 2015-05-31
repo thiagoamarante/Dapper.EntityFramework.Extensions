@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata schemaVersion="2">
     <id>Dapper.EntityFramework.Extensions</id>
-    <version>1.8.0.0</version>
+    <version>1.8.0.1</version>
     <title>Dapper entity framework extensions</title>
     <authors>Thiago Amarante</authors>
     <owners>Thiago Amarante</owners>
@@ -29,7 +29,7 @@
       <frameworkAssembly assemblyName="Microsoft.CSharp" targetFramework=".NETFramework4.0-Client, .NETFramework4.0" />
     </frameworkAssemblies>
     <releaseNotes>
-      (*) Release 1.8.0.0
+      (*) Release 1.8.0.1
       - Support  DbGeography/DbGeometry
 
       (*) Release 1.7.0.1
