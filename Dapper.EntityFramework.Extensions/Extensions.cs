@@ -18,14 +18,16 @@ using System.Data.Entity.Core.Metadata.Edm;
 namespace Dapper
 {
     public static class Extensions
-    {       
-        private static bool _Init = false; 
+    {
+        private static bool _Init = false;
         private static Dictionary<Type, string> _CacheTable = new Dictionary<Type, string>();
+        private static string[] AcceptTypes = new string[] { "System.Data.Entity.Spatial.DbGeometry", "System.Data.Entity.Spatial.DbGeography" };
 
         #region Methods
         public static object Insert<TEntity>(this DbSet<TEntity> source, object entity, bool returnIdentity = true, string propertyKey = "Id")
             where TEntity : class
         {
+            Init();
 #if DEBUG
             var watch = LogStart("INSERT");
 #endif
@@ -33,9 +35,9 @@ namespace Dapper
 #if DEBUG
             LogElapsed(watch, "GetDbContext");
 #endif
-            
+
             string table = GetTableName<TEntity>(context);
-            string[] properties = entity.GetType().GetProperties().Where(o => (o.PropertyType.IsEnum || Type.GetTypeCode(o.PropertyType) != TypeCode.Object) && o.Name != propertyKey).Select(o => o.Name).ToArray();
+            string[] properties = entity.GetType().GetProperties().Where(o => (o.PropertyType.IsEnum || AcceptTypes.Contains(o.PropertyType.FullName) || Type.GetTypeCode(o.PropertyType) != TypeCode.Object) && o.Name != propertyKey).Select(o => o.Name).ToArray();
             string sql = string.Concat("INSERT INTO ", table, " (",
                 string.Join(", ", properties.Select(o => string.Concat("[", o, "]"))),
                 ") VALUES(",                
@@ -63,6 +65,7 @@ namespace Dapper
         public static int Update<TEntity>(this DbSet<TEntity> source, object entity, Expression<Func<TEntity, bool>> where = null, string propertyKey = "Id")
             where TEntity : class
         {
+            Init();
 #if DEBUG
             var watch = LogStart("UPDATE");
 #endif
@@ -75,7 +78,7 @@ namespace Dapper
             string table = GetTableName<TEntity>(context);
             Dictionary<string, Type> properties = entity.GetType().GetProperties().ToDictionary(o => o.Name, o => o.PropertyType);
             string sql = string.Concat("UPDATE ", table, " SET ",
-                string.Join(", ", properties.Where(o => (o.Value.IsEnum || Type.GetTypeCode(o.Value) != TypeCode.Object) && o.Key != propertyKey).Select(o => string.Concat("[", o.Key, "]") + " = @" + o.Key)));
+                string.Join(", ", properties.Where(o => (o.Value.IsEnum || AcceptTypes.Contains(o.Value.FullName) || Type.GetTypeCode(o.Value) != TypeCode.Object) && o.Key != propertyKey).Select(o => string.Concat("[", o.Key, "]") + " = @" + o.Key)));
 #if DEBUG
             LogElapsed(watch, "Parse update");
 #endif
@@ -98,6 +101,7 @@ namespace Dapper
         public static int Delete<TEntity>(this DbSet<TEntity> source, Expression<Func<TEntity, bool>> where = null)
             where TEntity : class
         {
+            Init();
 #if DEBUG
             var watch = LogStart("DELETE");
 #endif
@@ -128,6 +132,7 @@ namespace Dapper
         public static IEnumerable<TEntity> Query<TEntity>(this DbSet<TEntity> source, Expression<Func<TEntity, bool>> where = null, int? top = null, Func<OrderBy<TEntity>, OrderBy<TEntity>> orderBy = null)
             where TEntity : class
         {
+            Init();
 #if DEBUG
             var watch = LogStart("QUERY");
 #endif
@@ -171,6 +176,7 @@ namespace Dapper
             where TEntity : class
             where TResult : class
         {
+            Init();
 #if DEBUG
             var watch = LogStart("QUERY WITH SELECTOR");
 #endif
@@ -215,6 +221,7 @@ namespace Dapper
         public static IEnumerable<TEntity> ToDapper<TEntity>(this IQueryable<TEntity> source)
             where TEntity : class
         {
+            Init();
 #if DEBUG
             var watch = LogStart("ToDapper");
 #endif
@@ -318,6 +325,15 @@ namespace Dapper
                 _CacheTable.Add(type, string.Format("[{0}].[{1}]", entitySet.Schema, entitySet.Name));
             }
             return _CacheTable[type];
+        }
+
+        private static void Init()
+        {
+            if (!_Init)
+            {
+                _Init = true;
+                Dapper.EntityFramework.Handlers.Register();
+            }
         }
         #endregion        
 

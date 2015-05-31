@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata schemaVersion="2">
     <id>Dapper.EntityFramework.Extensions</id>
-    <version>1.7.0.1</version>
+    <version>1.8.0.0</version>
     <title>Dapper entity framework extensions</title>
     <authors>Thiago Amarante</authors>
     <owners>Thiago Amarante</owners>
@@ -18,8 +18,9 @@
     <tags>orm sql micro-orm entityframework entity framework extensions</tags>
     <iconUrl>http://go.microsoft.com/fwlink/?LinkID=386613</iconUrl>
     <dependencies>
-      <dependency id="EntityFramework" version="6.1.2" />
-      <dependency id="Dapper" version="1.38" />
+      <dependency id="EntityFramework" version="6.1.3" />
+      <dependency id="Dapper" version="1.42.0" />
+      <dependency id="Dapper.EntityFramework" version="1.33.0" />
     </dependencies>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System.Core"/>
@@ -28,6 +29,9 @@
       <frameworkAssembly assemblyName="Microsoft.CSharp" targetFramework=".NETFramework4.0-Client, .NETFramework4.0" />
     </frameworkAssemblies>
     <releaseNotes>
+      (*) Release 1.8.0.0
+      - Support  DbGeography/DbGeometry
+
       (*) Release 1.7.0.1
       - Insert optional return identity
       - Insert return identity object type
